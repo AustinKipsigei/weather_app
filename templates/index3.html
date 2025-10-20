@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Weather App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: url("/static/{{ weather.background if weather else 'default.jpg' }}") no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            min-height: 100vh;
+        }
+        .overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            min-height: 100vh;
+            padding-top: 60px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-custom {
+            background-color: #00c6ff;
+            border: none;
+            color: white;
+            transition: 0.3s;
+        }
+        .btn-custom:hover {
+            background-color: #0099cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay d-flex flex-column align-items-center justify-content-start">
+        <div class="container text-center">
+            <h1 class="mb-4">🌤️ Live Weather App</h1>
+
+            <form method="POST" class="d-flex justify-content-center mb-4">
+                <input type="text" name="city" class="form-control w-50 me-2" placeholder="Enter city name" required>
+                <button type="submit" class="btn btn-custom">Get Weather</button>
+            </form>
+
+            <div id="autoWeather"></div>
+
+            {% if weather %}
+            <div class="card p-4 mx-auto" style="max-width: 400px;">
+                <h2>{{ weather.city }}</h2>
+                <img src="http://openweathermap.org/img/wn/{{ weather.icon }}@2x.png" alt="Weather icon">
+                <h3>{{ weather.temperature }}°C</h3>
+                <p>{{ weather.description }}</p>
+                <hr>
+                <p>Feels like: {{ weather.feels_like }}°C</p>
+                <p>Humidity: {{ weather.humidity }}%</p>
+                <p>Wind speed: {{ weather.wind_speed }} m/s</p>
+            </div>
+            {% elif error %}
+            <div class="alert alert-danger w-50 mx-auto mt-3">
+                {{ error }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+    // Auto-detect user location and fetch weather
+    window.onload = function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(success, error);
+        } else {
+            document.getElementById("autoWeather").innerHTML =
+                "<p class='text-warning'>Geolocation not supported by your browser.</p>";
+        }
+    };
+
+    function success(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        fetch(`/weather?lat=${lat}&lon=${lon}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById("autoWeather").innerHTML =
+                        `<div class='alert alert-danger'>${data.error}</div>`;
+                } else {
+                    document.getElementById("autoWeather").innerHTML = `
+                        <div class="card p-4 mx-auto mb-4" style="max-width: 400px;">
+                            <h2>${data.city}</h2>
+                            <img src="http://openweathermap.org/img/wn/${data.icon}@2x.png" alt="Weather icon">
+                            <h3>${data.temperature}°C</h3>
+                            <p>${data.description}</p>
+                            <hr>
+                            <p>Feels like: ${data.feels_like}°C</p>
+                            <p>Humidity: ${data.humidity}%</p>
+                            <p>Wind speed: ${data.wind_speed} m/s</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(() => {
+                document.getElementById("autoWeather").innerHTML =
+                    `<div class='alert alert-danger'>Unable to fetch weather data.</div>`;
+            });
+    }
+
+    function error() {
+        document.getElementById("autoWeather").innerHTML =
+            "<p class='text-warning'>Location access denied. Please allow it or search manually.</p>";
+    }
+    </script>
+</body>
+</html>
